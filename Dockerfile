@@ -1,33 +1,33 @@
-# 使用官方轻量级 Miniconda3 基础镜像
-FROM mambaorg/micromamba:1.5-alpine
+# Use the Debian-based micromamba image (avoiding Alpine compatibility issues)
+FROM mambaorg/micromamba:1.5-debian-slim
 
-# 将用户切换至 root 以便安装系统工具
 USER root
 
-# 安装基础生信命令行工具
-RUN apk add --no-cache wget samtools fastp bash
+# 1. Install standard system tools via apt-get
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    samtools \
+    fastp \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
 
-# 使用 micromamba (极速版 conda) 从 bioconda 频道安装 snakemake 与依赖
-# 这会直接下载预编译好的包，绝不会触发任何编译报错！
+# 2. Use micromamba to install snakemake ecosystem (Pre-compiled, no compile errors!)
 RUN micromamba install -y -n base -c conda-forge -c bioconda \
     snakemake \
     snakemake-storage-plugin-s3 \
     pandas \
     && micromamba clean --all --yes
 
-# 激活基础环境路径
-ENV PATH /opt/conda/bin:$PATH
+# 3. Modern environment path formatting (Fixes the Docker format warning)
+ENV PATH="/opt/conda/bin:${PATH}"
 
-# 创建并定义工作目录
+# 4. Define and copy pipeline assets
 WORKDIR /pipeline
 
-# 复制项目代码
 COPY Snakefile /pipeline/Snakefile
 COPY run_pipeline.sh /pipeline/run_pipeline.sh
 COPY scripts/ /pipeline/scripts/
 
-# 赋予执行权限
 RUN chmod +x /pipeline/run_pipeline.sh
 
 ENTRYPOINT ["/pipeline/run_pipeline.sh"]
-
