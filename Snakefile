@@ -1,32 +1,35 @@
+# ==============================================================================
+# 🌟 全现代 Snakemake 存储插件官方标准语法（100% 杜绝 S3 未定义错误）
+# ==============================================================================
+# 1. 声明使用官方 S3 存储插件
 storage:
     provider="s3"
 
-# Extract parameters injected via the --config flag from the entrypoint script
+# 2. 提取通过 AWS Batch 传进容器内部的精准 config 路径参数
 SAMPLE = config["sample_id"]
 BUCKET = config["bucket"]
 R1_IN  = config["r1_key"]
 R2_IN  = config["r2_key"]
 S3_OUT = config["out_dir"].rstrip('/')
 
+# 3. 终极总目标（定义管线最终要推回 S3 桶的成果物路径）
 rule all:
     input:
-        # The final target reports we want pushed back up to our cloud S3 bucket
-        S3.remote(f"{S3_OUT}/qc/reports/{SAMPLE}_qc_verdict.txt"),
-        S3.remote(f"{S3_OUT}/qc/reports/{SAMPLE}_fastp_summary.html")
+        storage(f"s3://{S3_OUT}/qc/reports/{SAMPLE}_qc_verdict.txt"),
+        storage(f"s3://{S3_OUT}/qc/reports/{SAMPLE}_fastp_summary.html")
 
-# RULE 1: Core Automated Data Quality Control & Filtering
+# 4. RULE 1: 调用 fastp 进行双端序列质控过滤
 rule run_fastp:
     input:
-        # Snakemake automatically downloads these streaming files in the background
-        r1 = S3.remote(f"{BUCKET}/{R1_IN}"),
-        r2 = S3.remote(f"{BUCKET}/{R2_IN}")
+        # 容器开机后会利用 S3 插件在后台实现高并发流式下载
+        r1 = storage(f"s3://{BUCKET}/{R1_IN}"),
+        r2 = storage(f"s3://{BUCKET}/{R2_IN}")
     output:
-        # Snakemake automatically caches files locally, processes them, 
-        # and uploads the clean output files right back up to S3 upon rule success
-        r1_clean = S3.remote(f"{S3_OUT}/clean_reads/{SAMPLE}_R1.clean.fastq.gz"),
-        r2_clean = S3.remote(f"{S3_OUT}/clean_reads/{SAMPLE}_R2.clean.fastq.gz"),
-        json     = "logs/fastp/qc_report.json", # Kept local temporarily
-        html     = S3.remote(f"{S3_OUT}/qc/reports/{SAMPLE}_fastp_summary.html")
+        # 分析完成后，干净的 Fastq.gz 压缩包会自动一键闪传回您的 S3 桶
+        r1_clean = storage(f"s3://{S3_OUT}/clean_reads/{SAMPLE}_R1.clean.fastq.gz"),
+        r2_clean = storage(f"s3://{S3_OUT}/clean_reads/{SAMPLE}_R2.clean.fastq.gz"),
+        json     = "logs/fastp/qc_report.json", # 保持容器本地临时缓存，用于 Rule 2
+        html     = storage(f"s3://{S3_OUT}/qc/reports/{SAMPLE}_fastp_summary.html")
     threads: 4
     shell:
         """
@@ -37,15 +40,14 @@ rule run_fastp:
             --thread {threads}
         """
 
-# RULE 2: Automated Quality Validation (Python Engine integration)
+# 5. RULE 2: 质量自动化校验（拉起我们写好的 Python 自动化大闸）
 rule validate_qc_thresholds:
     input:
         json = "logs/fastp/qc_report.json"
     output:
-        verdict = S3.remote(f"{S3_OUT}/qc/reports/{SAMPLE}_qc_verdict.txt")
+        verdict = storage(f"s3://{S3_OUT}/qc/reports/{SAMPLE}_qc_verdict.txt")
     shell:
         """
-        # Execute your localized python checker logic
         python3 /pipeline/scripts/check_qc_thresholds.py \
             --json {input.json} \
             --min_q30 85.0 \
