@@ -1,0 +1,27 @@
+# Git metadata
+.git
+.github
+
+# Local execution scratch spaces and cluster run garbage
+workspace/
+logs/
+.snakemake/
+
+# Large genomic data files (never pack these into images)
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.bam
+*.sam
+*.bai
+
+# Python caching artifacts
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating system metadata
+.DS_Store
+Thumbs.db

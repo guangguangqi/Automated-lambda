@@ -1,0 +1,40 @@
+# Authentication / secrets
+token.json
+client_secrets.json
+
+# Snakemake working files
+.snakemake/
+
+# Results and logs
+results/
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+
+
+# Ignore large sequencing files everywhere
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+# But keep small CI test data
+!data/
+!data/*.fastq.gz
+
+# Alignment files
+*.bam
+*.bai
+*.sam
+*.cram
+*.crai
+
+# STAR temporary files
+resources/reference/_STARtmp/
+
+# OS files
+.DS_Store
+
+resources/reference/star_index/
