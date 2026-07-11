@@ -1,6 +1,5 @@
-# Force-load the official Snakemake S3 storage plugin
-from snakemake.remote.S3 import RemoteProvider
-S3 = RemoteProvider()
+storage:
+    provider="s3"
 
 # Extract parameters injected via the --config flag from the entrypoint script
 SAMPLE = config["sample_id"]
