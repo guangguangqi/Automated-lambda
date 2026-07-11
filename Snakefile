@@ -60,6 +60,7 @@ rule run_fastp:
         """
 
 
+
 rule validate_qc_thresholds:
     input:
         json="logs/fastp/qc_report.json"
@@ -71,14 +72,10 @@ rule validate_qc_thresholds:
 
     shell:
         """
-        mkdir -p $(dirname "{output.verdict}")
-
-        # 💡 Append "|| true" to tell Snakemake: 
-        # "Even if this sample fails biological QC thresholds, the execution itself was a success!"
         python3 /pipeline/scripts/check_qc_thresholds.py \
-            --json {input.json} \
+            --json {input.json:q} \
             --min_q30 85.0 \
             --min_reads 5000000 \
-            --output {output.verdict} || true
+            --output {output.verdict:q} \
+            --soft-fail
         """
-
