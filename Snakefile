@@ -71,10 +71,13 @@ rule validate_qc_thresholds:
 
     shell:
         """
+        mkdir -p $(dirname "{output.verdict}")
+
         python3 /pipeline/scripts/check_qc_thresholds.py \
             --json {input.json} \
             --min_q30 85.0 \
             --min_reads 5000000 \
             --output {output.verdict}
         """
+
 
